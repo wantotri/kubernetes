@@ -1,0 +1,37 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: frontend
+  labels:
+    app: microservices
+    tier: frontend
+
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      tier: frontend
+
+  template:
+    metadata:
+      labels:
+        app: microservice
+        tier: frontend
+
+    spec:
+      containers:
+      - name: vue-app
+        image: ghcr.io/wantotri/karsajobs/karsajobs-ui:latest
+        ports:
+          - containerPort: 8000
+
+        env:
+          - name: VUE_APP_BACKEND
+            value: "http://$(BACKEND_SERVICE_HOST):$(BACKEND_SERVICE_PORT)"
+
+        resources:
+          requests:
+            cpu: 20m
+          # limits:
+          #   memory: 128Mi
+          #   cpu: 500m
