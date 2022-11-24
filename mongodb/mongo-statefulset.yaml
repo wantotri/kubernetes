@@ -24,38 +24,82 @@ spec:
     spec:
       terminationGracePeriodSeconds: 10
       containers:
-      - image: mongo
-        name: mongo
-
-        env:
-        # - name: MONGO_INITDB_ROOT_USERNAME
-        #   value: /etc/mongo-credentials/MONGO_ROOT_USERNAME
-
-        # - name: MONGO_INITDB_ROOT_PASSWORD
-        #   value: /etc/mongo-credentials/MONGO_ROOT_PASSWORD
-
-        - name: MONGO_ROOT_USERNAME
-          valueFrom:
-            secretKeyRef:
-              name: mongo-secret
-              key: username
-
-        - name: MONGO_ROOT_PASSWORD
-          valueFrom:
-            secretKeyRef:
-              name: mongo-secret
-              key: password
+      - name: mongo
+        image: mongo
 
         ports:
         - containerPort: 27017
           name: mongo
 
+        # ensure that the container does not get stuck in a loop due to any bug
+        # and can be restarted automatically in case an unexpected error comes up
+        livenessProbe:
+          exec:
+            command:
+            - bash
+            - "-c"
+            - |
+              mongo -u `cat /etc/mongo-credentials/MONGO_ROOT_USERNAME` -p `cat /etc/mongo-credentials/MONGO_ROOT_PASSWORD` --eval db.adminCommand\(\"ping\"\)
+          failureThreshold: 3
+          periodSeconds: 10
+          successThreshold: 1
+          timeoutSeconds: 5
+
+        readinessProbe:
+          exec:
+            command:
+            - bash
+            - "-c"
+            - |
+              mongo -u `cat /etc/mongo-credentials/MONGO_ROOT_USERNAME` -p `cat /etc/mongo-credentials/MONGO_ROOT_PASSWORD` --eval db.adminCommand\(\"ping\"\)
+          failureThreshold: 3
+          periodSeconds: 10
+          successThreshold: 1
+          timeoutSeconds: 1
+
+        # Environment Variables Properties
+        env:
+        - name: MONGO_INITDB_ROOT_USERNAME_FILE
+          value: /etc/mongo-credentials/MONGO_ROOT_USERNAME
+
+        - name: MONGO_INITDB_ROOT_PASSWORD_FILE
+          value: /etc/mongo-credentials/MONGO_ROOT_PASSWORD
+
+        # Volume Mounts Properties based on volumes:
         volumeMounts:
         - name: mongo-persistent-storage
           mountPath: /data/db
 
+        - name: mongo-config
+          mountPath: /config
+          readOnly: true
+
+        - name: mongo-credentials
+          mountPath: /etc/mongo-credentials
+          readOnly: true
+
       volumes:
+      # Persistent Volume
       - name: mongo-persistent-storage
         persistentVolumeClaim:
           claimName: mongo-pv-claim
+
+      # ConfigMap Volume
+      - name: mongo-config
+        configMap:
+          name: mongo-config
+          items:
+            - key: mongo.conf
+              path: mongo.conf
+
+      # Credentials (Secret) Volumes
+      - name: mongo-credentials
+        secret:
+          secretName: mongo-secret
+          items:
+            - key: MONGO_ROOT_USERNAME
+              path: MONGO_ROOT_USERNAME
+
+            - key: MONGO_ROOT_PASSWORD
+              path: MONGO_ROOT_PASSWORD
 
