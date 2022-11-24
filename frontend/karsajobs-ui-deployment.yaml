@@ -26,12 +26,14 @@ spec:
           - containerPort: 8000
 
         env:
+          # Set VUE_APP_BACKEND environment variable directly, ignoring .env file
           - name: VUE_APP_BACKEND
-            value: "http://$(BACKEND_SERVICE_HOST):$(BACKEND_SERVICE_PORT)"
+            # `localhost` is the ingress after running `minikube tunnel`
+            value: "http://localhost/api"
 
         resources:
           requests:
             cpu: 20m
-          # limits:
-          #   memory: 128Mi
-          #   cpu: 500m
+          limits:
+            memory: 512Mi
+            cpu: 500m

@@ -1,0 +1,35 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: nginx-ingress
+  labels:
+    name: nginx-ingress
+  annotations:
+    nginx.ingress.kubernetes.io/rewrite-target: /$1
+
+# Before applying this manifest,
+# make sure to run `minikube addons enable ingress`
+spec:
+  rules:
+  - http:
+      paths:
+      - pathType: Prefix
+        path: /(.*)
+        backend:
+          service:
+            name: frontend
+            port:
+              number: 8000
+  - http:
+      paths:
+      - pathType: Prefix
+        path: /api/(.*)
+        backend:
+          service:
+            name: backend
+            port:
+              number: 8080
+
+# after applying this manifest,
+# run `minikube tunnel` in new terminal and keep it open
+# to test access: curl http://localhost
