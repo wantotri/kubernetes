@@ -21,25 +21,30 @@ spec:
     spec:
       containers:
       - name: server
+        # Get image from GitHub Container Registry (ghcr)
         image: ghcr.io/wantotri/karsajobs/karsajobs:latest
         ports:
           - containerPort: 8080
 
+        # Set environment variables for app port and mongodb connection
         env:
           - name: APP_PORT
             value: "8080"
+
           - name: MONGO_HOST
-            value: "$(MONGO_SERVICE_HOST)"
+            value: "mongo"
+
           - name: MONGO_USER
             valueFrom:
               secretKeyRef:
                 name: mongo-secret
-                key: username
+                key: MONGO_ROOT_USERNAME
+
           - name: MONGO_PASS
             valueFrom:
               secretKeyRef:
                 name: mongo-secret
-                key: password
+                key: MONGO_ROOT_PASSWORD
 
         resources:
           requests:
